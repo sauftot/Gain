@@ -32,9 +32,10 @@ PUBLIC STRUCTS AND FUNCTIONS
 */
 
 type Node struct {
-	meta    *NodeMeta
-	buckets *BucketList
-	ctx     internal.ContextWithCancel
+	meta     *NodeMeta
+	buckets  *BucketList
+	ctx      internal.ContextWithCancel
+	register chan internal.ContextWithCancel
 }
 
 func NewNode(rootCtx context.Context) *Node {
@@ -53,9 +54,12 @@ func NewNode(rootCtx context.Context) *Node {
 	} else {
 		rootCtx, cancel = context.WithCancel(rootCtx)
 	}
+
+	register := make(chan internal.ContextWithCancel, 10)
+
 	return &Node{
 		meta:    newMeta,
-		buckets: NewBucketList(newMeta),
+		buckets: NewBucketList(newMeta, register),
 		ctx:     internal.ContextWithCancel{Ctx: rootCtx, Cancel: cancel},
 	}
 }
@@ -64,16 +68,44 @@ func NewNode(rootCtx context.Context) *Node {
 NODE INTERFACE
 */
 
-func (n *Node) Start() {
+func (n *Node) Start(boot string) {
 	nodeLogger.Log("Starting node...")
+	// resolve boot
+	var ip net.IP
+	ip = net.ParseIP(boot)
+	if ip == nil {
+		i, err := net.ResolveIPAddr("ip4", boot)
+		if err != nil {
+			nodeLogger.Error("Error resolving boot node: ", err)
+			n.ctx.Cancel()
+			return
+		}
+		ip = i.IP
+	}
+
+	// dial boot
+	conn, err := net.DialUDP("udp", nil, &net.UDPAddr{IP: ip, Port: port})
+	if err != nil {
+		nodeLogger.Error("Error dialing boot node: ", err)
+	}
+
+	// start the network handler TODO: move to separate function and implement callbacks
+	wg.Add(1)
+	go n.run()
+
+	// send initial message to boot node TODO: make this into context and pass to register for network handler
+	initialMsgID := GenerateID()
+	initialMsg := NewMessage(&initialMsgID, n.meta, FIND_NODE, n.meta.ID.Bytes())
+	_, err = conn.Write(initialMsg.ToBytes())
+	if err != nil {
+		nodeLogger.Error("Error sending initial message to boot node: ", err)
+		n.ctx.Cancel()
+		return
+	}
 }
 
 func (n *Node) Stop() {
 	nodeLogger.Log("Stopping node...")
-}
-
-func (n *Node) JoinNetwork() {
-	nodeLogger.Log("Joining network...")
 }
 
 func (n *Node) Store() {
@@ -93,7 +125,6 @@ func (n *Node) receivedFromNode(node NodeMeta) {
 }
 
 func (n *Node) run() {
-	wg.Add(1)
 	defer wg.Done()
 	nodeLogger.Log("run started")
 
@@ -118,6 +149,6 @@ func (n *Node) findNode() {
 
 }
 
-func (n *Node) ping() {
+func (n *Node) store() {
 
 }
