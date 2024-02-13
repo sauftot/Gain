@@ -46,11 +46,6 @@ func NewNode(rootCtx context.Context) *Node {
 		fmt.Println("Error creating logger: ", err)
 		panic(err)
 	}
-	out := make(chan Message, 100)
-
-	go func() {
-		
-	}
 
 	var cancel context.CancelFunc
 	if rootCtx == nil {
@@ -81,12 +76,12 @@ func (n *Node) JoinNetwork() {
 	nodeLogger.Log("Joining network...")
 }
 
-func (n *Node) Broadcast() {
-	nodeLogger.Log("Broadcasting...")
+func (n *Node) Store() {
+
 }
 
-func (n *Node) SendToNode() {
-	nodeLogger.Log("Sending to node...")
+func (n *Node) Find() {
+
 }
 
 /*

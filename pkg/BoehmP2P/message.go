@@ -2,6 +2,7 @@ package BoehmP2P
 
 import (
 	json2 "encoding/json"
+	"math/big"
 )
 
 const (
@@ -15,16 +16,18 @@ const (
 )
 
 type Message struct {
-	From *NodeMeta
-	RPC  uint8
-	data []byte
+	RPCID big.Int
+	From  NodeMeta
+	RPC   uint8
+	Data  []byte
 }
 
-func NewMessage(from *NodeMeta, rpc uint8, data []byte) *Message {
+func NewMessage(rpcID *big.Int, from *NodeMeta, rpc uint8, data []byte) *Message {
 	return &Message{
-		From: from,
-		RPC:  rpc,
-		data: data,
+		RPCID: *rpcID,
+		From:  *from,
+		RPC:   rpc,
+		Data:  data,
 	}
 }
 
