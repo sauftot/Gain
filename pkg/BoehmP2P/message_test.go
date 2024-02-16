@@ -5,7 +5,7 @@ import "testing"
 // TestParsing tests the marshalling and parsing of messages
 func TestParsing(t *testing.T) {
 	id := GenerateOwnMeta()
-	id.latency = 1
+	id.Latency = 1
 	rpc := PING
 	rpcID := GenerateID()
 	msg := NewMessage(&rpcID, id, rpc, []byte("test"))
@@ -39,7 +39,7 @@ func TestParsing(t *testing.T) {
 // TestParsingNilData tests the marshalling and parsing of messages with nil data
 func TestParsingNilData(t *testing.T) {
 	id := GenerateOwnMeta()
-	id.latency = 1
+	id.Latency = 1
 	rpc := PING
 	rpcID := GenerateID()
 	msg := NewMessage(&rpcID, id, rpc, nil)

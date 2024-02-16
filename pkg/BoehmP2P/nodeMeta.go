@@ -9,7 +9,7 @@ type NodeMeta struct {
 	IP      string
 	Port    string
 	ID      big.Int
-	latency int
+	Latency int
 }
 
 func (id *NodeMeta) Xor(other *NodeMeta) *big.Int {
@@ -37,7 +37,7 @@ func GenerateOwnMeta() *NodeMeta {
 	meta.IP = ""
 	meta.Port = ""
 	meta.ID = id
-	meta.latency = -1
+	meta.Latency = -1
 	return meta
 }
 

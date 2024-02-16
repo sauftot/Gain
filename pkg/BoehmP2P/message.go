@@ -8,6 +8,7 @@ import (
 const (
 	// PING FIND_NODE FIND_VALUE STORE BROADCAST RPCs
 	PING       uint8 = 66
+	PINGRES    uint8 = 166
 	FIND_NODE  uint8 = 67
 	FIND_VALUE uint8 = 68
 	STORE      uint8 = 69

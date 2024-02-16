@@ -16,7 +16,7 @@ type BucketList struct {
 	register chan internal.ContextWithCancel
 }
 
-func NewBucketList(ownMeta *NodeMeta, register chan internal.ContextWithCancel) *BucketList {
+func NewBucketList(ownMeta *NodeMeta, register chan internal.ContextWithCancel, ctx internal.ContextWithCancel) *BucketList {
 	b := make(map[int][]NodeMeta)
 	b[159] = make([]NodeMeta, 0, k)
 	b[159] = append(b[159], *ownMeta)
@@ -24,6 +24,7 @@ func NewBucketList(ownMeta *NodeMeta, register chan internal.ContextWithCancel) 
 	bl.buckets = b
 	bl.ownMeta = ownMeta
 	bl.register = register
+	bl.ctx = ctx
 	return bl
 }
 
@@ -36,7 +37,6 @@ func (b *BucketList) pingHandler(ctx internal.ContextWithCancel, bucketIndex int
 	if err != nil {
 		nodeLogger.Error("Error pinging node: ", err)
 		ctx.Cancel()
-		// evict node and insert new one
 	} else {
 		msg := NewMessage(ctx.Ctx.Value("RPCID").(*big.Int), b.ownMeta, PING, nil)
 		_, err = conn.Write(msg.ToBytes())
@@ -53,11 +53,17 @@ func (b *BucketList) pingHandler(ctx internal.ContextWithCancel, bucketIndex int
 				// bucket was changed before ping response. Maybe the pinged node sent us something before responding to the ping, we can return
 				return
 			}
+		default:
+
 		}
 	}
 	b.buckets[bucketIndex] = append(b.buckets[bucketIndex][1:], node)
 }
 
+/*
+Add adds a node to the bucket list. It handles splitting buckets, pinging nodes and evicting nodes.
+Please check appropriate tests for more information.
+*/
 func (b *BucketList) Add(node NodeMeta) {
 	// xor the node with our own ID
 	// find the most significant bit of the xor result
@@ -83,16 +89,15 @@ func (b *BucketList) Add(node NodeMeta) {
 		if !exists {
 			b.buckets[index-1] = make([]NodeMeta, 0, k)
 			// move the appropriate nodes from the index bucket to the new bucket
-			indexesToRemove := make([]int, 0, k)
-			for i, n := range b.buckets[index] {
-				if n.MsbXorDist(b.ownMeta) != index {
-					b.buckets[index-1] = append(b.buckets[index-1], n)
-					indexesToRemove = append(indexesToRemove, i)
+			adjustedLen := len(b.buckets[index])
+			for i := 0; i < adjustedLen; i++ {
+				if idBits-1-b.buckets[index][i].MsbXorDist(b.ownMeta) != index {
+					b.buckets[index-1] = append(b.buckets[index-1], b.buckets[index][i])
+					b.buckets[index] = append(b.buckets[index][:i], b.buckets[index][i+1:]...)
+					adjustedLen--
 				}
 			}
-			for _, i := range indexesToRemove {
-				b.buckets[index] = append(b.buckets[index][:i], b.buckets[index][i+1:]...)
-			}
+
 			// add the new node to the correct bucket
 			if len(b.buckets[index]) < k {
 				b.buckets[index] = append(b.buckets[index], node)
@@ -110,7 +115,7 @@ func (b *BucketList) Add(node NodeMeta) {
 		ct := context.WithValue(b.ctx.Ctx, "RPCID", &pingId)
 
 		// create a callback channel for the network handler to send the response to
-		responseChannel := make(chan Message)
+		responseChannel := make(chan Message, 10)
 		ct2 := context.WithValue(ct, "callback", responseChannel)
 
 		// generate a deadline for the context

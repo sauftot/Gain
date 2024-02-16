@@ -56,11 +56,11 @@ func NewNode(rootCtx context.Context) *Node {
 	}
 
 	register := make(chan internal.ContextWithCancel, 10)
-
+	c := internal.ContextWithCancel{Ctx: rootCtx, Cancel: cancel}
 	return &Node{
 		meta:    newMeta,
-		buckets: NewBucketList(newMeta, register),
-		ctx:     internal.ContextWithCancel{Ctx: rootCtx, Cancel: cancel},
+		buckets: NewBucketList(newMeta, register, c),
+		ctx:     c,
 	}
 }
 
