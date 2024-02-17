@@ -19,7 +19,6 @@ type BucketList struct {
 func NewBucketList(ownMeta *NodeMeta, register chan internal.ContextWithCancel, ctx internal.ContextWithCancel) *BucketList {
 	b := make(map[int][]NodeMeta)
 	b[159] = make([]NodeMeta, 0, k)
-	b[159] = append(b[159], *ownMeta)
 	bl := new(BucketList)
 	bl.buckets = b
 	bl.ownMeta = ownMeta
