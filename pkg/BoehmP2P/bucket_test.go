@@ -112,13 +112,6 @@ func TestAddToBucket21_Split_NoRegisterCalled(t *testing.T) {
 	t.Log("Length of new bucket: ", len(bucketList.buckets[idBits-2]))
 }
 
-/*
-
-TODO: ANSWER: DO NODES CONTAIN THEIR OWN ID IN THEIR BUCKETS?
-A: NO
-
-*/
-
 func TestAddToBucket21_NoSplit_RegisterCalled_PingTimedOut(t *testing.T) {
 	register := make(chan internal.ContextWithCancel, 10)
 	defer close(register)
